@@ -21,7 +21,7 @@ Resources:
               Service: 's3.amazonaws.com'
             Condition:
               ArnEquals:
-                aws:SourceArn: 'arn:aws:s3:::sujata-s3'
+                aws:SourceArn: 'arn:aws:s3:::sujata-sns-bucket'
 
   SnsTopic:
     Type: AWS::SNS::Topic
@@ -56,7 +56,7 @@ Resources:
   S3Bucket:
     Type: AWS::S3::Bucket
     Properties: 
-      BucketName: sujata-s3
+      BucketName: sujata-sns-bucket
       NotificationConfiguration:
         QueueConfigurations:
           - Event: s3:ObjectCreated:*
