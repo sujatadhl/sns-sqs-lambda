@@ -9,8 +9,10 @@ def handler(event, context):
         sqs_message = json.loads(msg)
         bucket = sqs_message['Records'][0]['s3']['bucket']['name']
         object_key = sqs_message['Records'][0]['s3']['object']['key']
-        message = f"This object has been added: {object_key} in bucket: {bucket}"
-        
+        message = {
+        'bucket': bucket_name,
+        'object_key': object_key
+    }   
         
         response = sns.publish(
             TopicArn='arn:aws:sns:us-east-1:426857564226:sns-topic-sujata',
