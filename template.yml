@@ -1,0 +1,89 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+
+Resources:
+  SqsSujata:
+    Type: AWS::SQS::Queue
+    Properties: 
+      QueueName: sqs-sujata
+
+  MyQueuePolicy:
+    Type: 'AWS::SQS::QueuePolicy'
+    Properties:
+      Queues:
+        - !Ref SqsSujata
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Action: 'sqs:SendMessage'
+            Resource: !GetAtt SqsSujata.Arn
+            Principal:
+              Service: 's3.amazonaws.com'
+            Condition:
+              ArnEquals:
+                aws:SourceArn: 'arn:aws:s3:::sujata-s3'
+
+  SnsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: sns-topic-sujata
+
+  TopicSubscription:
+    Type: 'AWS::SNS::Subscription'
+    Properties:
+      TopicArn: 
+        Ref: SnsTopic
+      Protocol: 'email'
+      Endpoint: 'sujata.dahal@adex.ltd'  
+ 
+  LambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties: 
+      CodeUri: .
+      Handler: handler.lambda_handler
+      Runtime: python3.10
+      Role: !GetAtt LambdaRole.Arn
+      Events:
+        SQSEvent:
+          Type: SQS
+          Properties:
+            Queue: 'arn:aws:sqs:us-east-1:426857564226:sqs-sujata'
+      Policies:
+        - SNSPublishMessagePolicy:
+            TopicName: 
+              Ref: SnsTopic
+
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties: 
+      BucketName: sujata-s3
+      NotificationConfiguration:
+        QueueConfigurations:
+          - Event: s3:ObjectCreated:*
+            Queue: !GetAtt SqsSujata.Arn    
+
+  LambdaRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: 'lambda.amazonaws.com'
+            Action: 'sts:AssumeRole'
+      Policies:
+        - PolicyName: 'LambdaSQSPolicy'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'sqs:ReceiveMessage'
+                  - 'sqs:DeleteMessage'
+                  - 'sqs:GetQueueAttributes'
+                Resource: 'arn:aws:sqs:us-east-1:426857564226:sqs-sujata'
+              - Effect: Allow
+                Action:
+                  - 'sns:Publish'
+                Resource: '*'
